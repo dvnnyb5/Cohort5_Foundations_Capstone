@@ -1,32 +1,51 @@
-CREATE TABLE users (
-  user_id INT PRIMARY KEY,
+CREATE TABLE Users (
+  user_id INTEGER PRIMARY KEY AUTOINCREMENT,
   first VARCHAR(50),
   last VARCHAR(50),
-  phone INT,
-  email VARCHAR(100),
-  password VARCHAR(50)
-  is_manager BOOLEAN
+  phone TEXT,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  password VARCHAR(50),
+  is_manager INTEGER DEFAULT 0,
+  active INTEGER DEFAULT 1
 );
 
-CREATE TABLE competencies (
-  competency_id INT PRIMARY KEY,
+CREATE TABLE Competencies (
+  competency_id INTEGER PRIMARY KEY AUTOINCREMENT,
   competency_name VARCHAR(50),
-  description TEXT
+  date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE assessments (
-  assessment_id INT PRIMARY KEY,
-  assessment_name VARCHAR(50),
-  description TEXT,
-  competency_id INT,
+CREATE TABLE Assessments (
+  assessment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  competency_id INTEGER NOT NULL,
+  result INTEGER,
+  date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (competency_id) REFERENCES competencies(competency_id)
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
-CREATE TABLE assessment_results (
-  result_id INT PRIMARY KEY,
-  user_id INT,
-  assessment_id INT,
-  score FLOAT,
-  FOREIGN KEY (user_id) REFERENCES users(user_id),
-  FOREIGN KEY (assessment_id) REFERENCES assessments(assessment_id)
-);
+INSERT INTO Users (first, last, phone, email, password, is_manager) 
+VALUES("dan", "blonquist", "5555555555", "dan@dan.com", "coolcool", 1),
+("Jack", "Jill", "5555555554", "jack@jill.com", 'password', 0);
+
+INSERT INTO Competencies (competency_name)
+VALUES('Data Types'),
+('Variables'),
+('Functions'),
+('Boolean Logic'),
+('Conditionals'),
+('Loops'),
+('Data Structures'),
+('Lists'),
+('Dictionaries'),
+('Working with Files'),
+('Exception Handling'),
+('Quality Assurance (QA)'),
+('Object-Oriented Programming'),
+('Recursion'),
+('Databases');
+
+INSERT INTO Assessments (user_id, competency_id, result)
+VALUES (1, 1, 2),
+(2,1,4);
