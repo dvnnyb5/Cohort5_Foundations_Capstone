@@ -1,8 +1,10 @@
 import sqlite3
+import bcrypt
+import hashlib
+import csv
 from datetime import datetime
 connection = sqlite3.connect("capstone.db")
 cursor = connection.cursor()
-
 
 class User:
     def __init__(self,user_id,first, last, phone, email, password):
@@ -43,20 +45,20 @@ class Manager(User):
     def view_users(self):
         view_query = '''SELECT * FROM Users'''
         results = cursor.execute(view_query,).fetchall()
-        print(f"\n{'User ID':<20}{'First Name':<20}{'Last Name':<20}{'Phone':<20}{'Email':<20}{'Password':<20}{'is_manager':<20}{'is_active'}")
-        print(f"{'---------':<20}{'----------':<20}{'---------':<20}{'-----':<20}{'-----':<20}{'--------':<20}{'----------':<20}{'---------'}")
+        print(f"\n{'User ID':<20}{'First Name':<20}{'Last Name':<20}{'Phone':<20}{'Email':<20}{'is_manager':<20}{'is_active'}")
+        print(f"{'---------':<20}{'----------':<20}{'---------':<20}{'-----':<20}{'-----':<20}{'----------':<20}{'---------'}")
         for row in results:
-            print(f"{row[0]:<20}{row[1]:<20}{row[2]:<20}{row[3]:<20}{row[4]:<20}{row[5]:<20}{row[6]:<20}{row[7]}")
+            print(f"{row[0]:<20}{row[1]:<20}{row[2]:<20}{row[3]:<20}{row[4]:<20}{row[6]:<20}{row[7]}")
 
     def search_user(self):
         search_query = '''SELECT * FROM Users WHERE first LIKE ?'''
         search = input('Search by first name: ')
         search = f'%{search}%'
         rows = cursor.execute(search_query,(search,)).fetchall()
-        print(f"\n{'User ID':<20}{'First Name':<20}{'Last Name':<20}{'Phone':<20}{'Email':<20}{'Password':<20}{'is_manager':<20}{'is_active'}")
-        print(f"{'---------':<20}{'----------':<20}{'---------':<20}{'-----':<20}{'-----':<20}{'--------':<20}{'----------':<20}{'---------'}")
+        print(f"\n{'User ID':<20}{'First Name':<20}{'Last Name':<20}{'Phone':<20}{'Email':<20}{'is_manager':<20}{'is_active'}")
+        print(f"{'---------':<20}{'----------':<20}{'---------':<20}{'-----':<20}{'-----':<20}{'----------':<20}{'---------'}")
         for row in rows:
-            print(f"{row[0]:<20}{row[1]:<20}{row[2]:<20}{row[3]:<20}{row[4]:<20}{row[5]:<20}{row[6]:<20}{row[7]}")
+            print(f"{row[0]:<20}{row[1]:<20}{row[2]:<20}{row[3]:<20}{row[4]:<20}{row[6]:<20}{row[7]}")
 
     def view_competencies(self):
         view_query = '''SELECT * FROM Competencies'''
@@ -109,8 +111,9 @@ class Manager(User):
         email = input('Enter email ')
         phone = input('Enter phone ')
         password = input('Enter password ')
+        hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
         is_manager = input('Is this user a manager? (1=Manager, 0=User) ')
-        cursor.execute(create_query,(first,last,email,phone,password,is_manager,)).fetchall()
+        cursor.execute(create_query,(first,last,email,phone,hashed_password,is_manager,)).fetchall()
         connection.commit()
     
     def add_new_competency(self):
@@ -138,10 +141,106 @@ class Manager(User):
         connection.commit()
         print('Result recorded!')
 
-    def all_assessments_given_user(self):
-        view_query = '''SELECT * FROM Assessments'''
-        data = cursor.execute(view_query).fetchall()
-        for line in data:
-            print(line)
+    def edit_user_info(self):
+        query = '''
+        UPDATE Users 
+        SET first = ?, last = ?, phone = ?, email = ?, password = ?, is_manager = ?, active = ?
+        WHERE user_id = ?'''
+        user_id = input("Enter user ID of the user you'd like to edit ")
+        first = input('Enter new first name ')
+        last = input('Enter new last name ')
+        phone = input('Enter new phone number ')
+        email = input('Enter new email ')
+        password = input('Enter new password ')
+        is_manager = int(input('Enter 1 if manager or 0 if user '))
+        active = int(input('Enter 1 if active or 0 if not active '))
+        cursor.execute(query,(first,last,phone,email,password,is_manager,active,user_id))
+        connection.commit()
+        print('\n\n')
+        print(f'{first} {last} has been updated!')
+
+    def edit_competency(self):
+        query = '''
+        UPDATE Competencies
+        SET competency_name = ?
+        WHERE competency_name LIKE ?
+        '''
+        update_competency = input("Enter competency you'd like to update ")
+        new_comp_name = input('What would you like to call the competency?(name) ')
+        search = f'%{update_competency}%'
+        cursor.execute(query,(new_comp_name,search))
+        connection.commit()
+        print('\n\n')
+        print(f'{new_comp_name} has been updated!')
+
+    def edit_assessment(self):
+        query = '''
+        UPDATE Assessments
+        SET user_id = ?,
+        competency_id = ?,
+        result = ?
+        WHERE assessment_id = ?
+        '''
+        assessment_id = int(input("Enter an assessment ID to update an assessment "))
+        new_user_id = int(input("Enter new user ID "))
+        new_comp_id = int(input("Enter new competency ID "))
+        new_result = int(input("Enter new result "))
+        cursor.execute(query,(new_user_id,new_comp_id,new_result,assessment_id))
+        connection.commit()
+        print('\n\n')
+        print(f'assessment_id {assessment_id} has been updated!')
     
+    def delete_assessment_result(self):
+        query = '''
+        UPDATE Assessments
+        SET result = NULL
+        WHERE assessment_id = ?
+        '''
+        assessment_id = int(input("Enter assessment ID to remove result "))
+        cursor.execute(query,(assessment_id,))
+        connection.commit()
+
+    def import_csv(self):
+        with open('test.csv', 'r')as file:
+            next(file)
+            reader = csv.reader(file)
+            data = [row for row in reader]
+
+        query = '''INSERT INTO Assessments (user_id, competency_id, result)
+        VALUES (?,?,?)'''
+        for row in data:
+            cursor.execute(query, row)
+        connection.commit()
+        print('Results have been imported! ')
+        
     
+    def write_one_report(self):
+        user_id = input('Enter a user ID ')
+        query = '''
+        SELECT u.first, u.last, c.competency_name, a.result
+        FROM Users u
+        LEFT JOIN Assessments a ON u.user_id = a.user_id
+        LEFT JOIN Competencies c ON a.competency_id = c.competency_id
+        WHERE u.user_id = ?;
+        '''
+        data = cursor.execute(query,(user_id))
+        with open('single_new.csv', 'w') as file:
+            writer = csv.writer(file)
+            writer.writerow(['first', 'last', 'subject', 'score'])
+            writer.writerows(data)
+        print('Data has been exported!')
+
+    def write_report_csv(self):
+        query = '''
+        SELECT u.first, u.last, c.competency_name, a.result
+        FROM Users u
+        LEFT JOIN Assessments a ON u.user_id = a.user_id
+        LEFT JOIN Competencies c ON a.competency_id = c.competency_id;
+        '''
+        data = cursor.execute(query)
+        with open('new.csv', 'w') as file:
+            writer = csv.writer(file)
+            writer.writerow(['first', 'last', 'subject', 'score'])
+            writer.writerows(data)
+        print('Data has been exported!')
+

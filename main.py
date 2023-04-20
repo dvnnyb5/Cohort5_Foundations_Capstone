@@ -1,5 +1,7 @@
 import os
 import sqlite3
+import bcrypt
+import csv
 from user import User, Manager
 connection = sqlite3.connect('capstone.db')
 cursor = connection.cursor()
@@ -27,7 +29,10 @@ def admin_menu():
     [6] ADD
     [7] EDIT
     [8] DELETE ASSESSMENT RESULT
-    [9] LOG OUT
+    [9] EXPORT COMPETENCY REPORT
+    [10] EXPORT COMPETENCY REPORT FOR SINGLE USER
+    [11] IMPORT ASSESSMENT RESULT
+    [12] LOG OUT
         """)
 def add_menu():
     # os.system('cls' if os.name == 'nt' else 'clear')
@@ -48,8 +53,7 @@ def edit_menu():
     [1] EDIT A USERS INFORMATION
     [2] EDIT A COMPETENCY
     [3] EDIT AN ASSESSMENT
-    [4] EDIT AN ASSESSMENT RESULT
-    [5] BACK TO ORIGINAL MENU
+    [4] BACK TO ORIGINAL MENU
         """)
 
 
@@ -62,9 +66,9 @@ while not user:
     password = input("Password: ")
     query = '''SELECT * FROM Users WHERE email = ?'''
     potential_user = cursor.execute(query,(email,)).fetchall()[0]
-    if password == potential_user[5]:
+    if bcrypt.checkpw(password.encode(), potential_user[5]):
         user = potential_user
-        print("\n\nlogin successful\n\n")
+        print("\n\nlogin successful")
     else:
         print("\nTry Again\nIncorrect Username or Password!\n\n")
 
@@ -78,62 +82,76 @@ else:
 
 # Admin engine
 while instantiated_user.is_manager == 1:
-    selection = admin_menu()
-    if selection == '1':
-        instantiated_user.view_users()
-    elif selection == '2':
-        instantiated_user.search_user()
-    elif selection == '3':
-        instantiated_user.report_of_users()
-    elif selection == '4':
-        instantiated_user.report_of_single_user()
-    elif selection == '5':
-        instantiated_user.report_of_single_user()
-    elif selection == '6':
-        while True:
-            selection2 = add_menu()
-            if selection2 == '1':
-                instantiated_user.add_user()
-            elif selection2 == '2':
-                instantiated_user.add_new_competency()
-            elif selection2 == '3':
-                instantiated_user.add_new_assessment()
-            elif selection2 == '4':
-                instantiated_user.add_assessment_result()
-            elif selection2 == '5':
-                break
-            else:
-                print("/nTry a valid selection!")
-    elif selection == '7':
-         while True:
-            selection3 = edit_menu()
-            if selection3 == '1':
-                pass
-            elif selection3 == '2':
-                pass
-            elif selection3 == '3':
-                pass
-            elif selection3 == '4':
-                pass
-            elif selection3 == '5':
-                break
-            else:
-                print("/nTry a valid selection!")
-    elif selection == '8':
-        pass
-    elif selection == '9':
-        break
-    else:
-        print('Try a valid selection')
+    try:
+        selection = admin_menu()
+        if selection == '1':
+            instantiated_user.view_users()
+        elif selection == '2':
+            instantiated_user.search_user()
+        elif selection == '3':
+            instantiated_user.report_of_users()
+        elif selection == '4':
+            instantiated_user.report_of_single_user()
+        elif selection == '5':
+            instantiated_user.report_of_single_user()
+        elif selection == '6':
+            while True:
+                selection2 = add_menu()
+                if selection2 == '1':
+                    instantiated_user.add_user()
+                elif selection2 == '2':
+                    instantiated_user.add_new_competency()
+                elif selection2 == '3':
+                    instantiated_user.add_new_assessment()
+                elif selection2 == '4':
+                    instantiated_user.add_assessment_result()
+                elif selection2 == '5':
+                    break
+                else:
+                    print("/nTry a valid selection!")
+        elif selection == '7':
+            while True:
+                selection3 = edit_menu()
+                if selection3 == '1':
+                    instantiated_user.edit_user_info()
+                elif selection3 == '2':
+                    instantiated_user.edit_competency()
+                elif selection3 == '3':
+                    instantiated_user.edit_assessment()
+                elif selection3 == '4':
+                    break
+                else:
+                    print("\nTry a valid selection!")
+        elif selection == '8':
+            instantiated_user.delete_assessment_result()
+        elif selection == '9':
+            instantiated_user.write_report_csv()
+        elif selection == '10':
+            instantiated_user.write_one_report()
+        elif selection == '11':
+            instantiated_user.import_csv()
+        elif selection == '12':
+            break
+        else:
+            print('Try a valid selection')
+    except Exception:
+        with open('log.txt', 'a') as log:
+            log.write(f"{Exception}\n")
+        print('\nSystem Error try again!\n')
 
 # user engine
 while instantiated_user.is_manager != 1:
-    selection = user_menu()
-    if selection == '1':
-        instantiated_user.view_data()
-    elif selection == '2':
-        instantiated_user.change_name()
-    elif selection == '3':
-        instantiated_user.change_password()
-    else:
-        break
+    try:
+        selection = user_menu()
+        if selection == '1':
+            instantiated_user.view_data()
+        elif selection == '2':
+            instantiated_user.change_name()
+        elif selection == '3':
+            instantiated_user.change_password()
+        else:
+            break
+    except Exception:
+        with open('log.txt', 'a') as log:
+            log.write(f"{Exception}\n")
+        print('\nSystem Error try again!\n')
