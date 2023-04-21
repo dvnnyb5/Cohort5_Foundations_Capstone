@@ -32,7 +32,8 @@ class User:
     def change_password(self):
         pass_change = '''UPDATE Users SET password = ? WHERE user_id = ?'''
         new_pass = input('Enter new password ')
-        cursor.execute(pass_change,(new_pass,self.user_id))
+        password = bcrypt.hashpw(new_pass.encode(), bcrypt.gensalt())
+        cursor.execute(pass_change,(password,self.user_id))
         connection.commit()
 
 
@@ -152,9 +153,10 @@ class Manager(User):
         phone = input('Enter new phone number ')
         email = input('Enter new email ')
         password = input('Enter new password ')
+        hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
         is_manager = int(input('Enter 1 if manager or 0 if user '))
         active = int(input('Enter 1 if active or 0 if not active '))
-        cursor.execute(query,(first,last,phone,email,password,is_manager,active,user_id))
+        cursor.execute(query,(first,last,phone,email,hashed_password,is_manager,active,user_id))
         connection.commit()
         print('\n\n')
         print(f'{first} {last} has been updated!')
